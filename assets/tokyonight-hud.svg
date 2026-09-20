@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1b26"/>
+      <stop offset="100%" stop-color="#16161e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7aa2f7"/>
+      <stop offset="100%" stop-color="#bb9af7"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7dcfff"/>
+      <stop offset="100%" stop-color="#2ac3de"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg)" stroke="#24283b" stroke-width="3"/>
+  <rect x="20" y="24" width="88" height="12" rx="6" fill="#24283b"/>
+  <rect x="20" y="24" width="56" height="12" rx="6" fill="url(#cyan)"/>
+  <rect x="20" y="46" width="40" height="26" rx="8" fill="#1f2335" stroke="#414868" stroke-width="2"/>
+  <rect x="68" y="46" width="40" height="26" rx="8" fill="#1f2335" stroke="#414868" stroke-width="2"/>
+  <rect x="20" y="80" width="88" height="28" rx="8" fill="#1f2335" stroke="url(#accent)" stroke-width="2"/>
+  <circle cx="28" cy="94" r="4" fill="#9ece6a"/>
+  <line x1="38" y1="94" x2="64" y2="94" stroke="#c0caf5" stroke-width="3" stroke-linecap="round"/>
+  <line x1="72" y1="94" x2="98" y2="94" stroke="#7aa2f7" stroke-width="3" stroke-linecap="round"/>
+</svg>

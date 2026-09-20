@@ -1,0 +1,17 @@
+[Unit]
+Description=Tokyonight Desktop System Summary HUD
+After=graphical-session.target
+Wants=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/share/tokyonight-hud/tokyonight_hud.py --daemon
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+Environment=GDK_BACKEND=x11
+Environment=DISPLAY=:0
+Environment=XDG_CURRENT_DESKTOP=GNOME
+
+[Install]
+WantedBy=graphical-session.target

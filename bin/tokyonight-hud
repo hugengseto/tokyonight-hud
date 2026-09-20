@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Tokyonight Desktop HUD CLI Launcher
+# ==============================================================================
+
+set -e
+
+APP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/tokyonight-hud"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Resolve active source directory
+if [ -d "$APP_DIR" ] && [ -f "$APP_DIR/tokyonight_hud.py" ]; then
+    RUN_DIR="$APP_DIR"
+elif [ -f "$SCRIPT_DIR/src/tokyonight_hud.py" ]; then
+    RUN_DIR="$SCRIPT_DIR/src"
+else
+    echo "Error: Tokyonight HUD is not installed and source not found." >&2
+    exit 1
+fi
+
+COMMAND="${1:-status}"
+
+case "$COMMAND" in
+    start)
+        echo "Starting Tokyonight HUD service..."
+        systemctl --user start tokyonight-hud.service
+        echo "Tokyonight HUD service started."
+        ;;
+    stop)
+        echo "Stopping Tokyonight HUD service..."
+        systemctl --user stop tokyonight-hud.service
+        echo "Tokyonight HUD service stopped."
+        ;;
+    restart)
+        echo "Restarting Tokyonight HUD service..."
+        systemctl --user restart tokyonight-hud.service
+        echo "Tokyonight HUD service restarted."
+        ;;
+    status)
+        systemctl --user status tokyonight-hud.service --no-pager
+        ;;
+    reload|--once)
+        echo "Refreshing Tokyonight HUD wallpaper & overlays..."
+        python3 "$RUN_DIR/tokyonight_hud.py" --once
+        echo "HUD refreshed."
+        ;;
+    photo|photos)
+        python3 "$RUN_DIR/change_photo_dialog.py" &
+        ;;
+    quote|quotes)
+        python3 "$RUN_DIR/add_quote_dialog.py" &
+        ;;
+    goal|focus)
+        python3 "$RUN_DIR/edit_goal_dialog.py" &
+        ;;
+    clean)
+        python3 "$RUN_DIR/clean_system_junk.py"
+        ;;
+    settings|gui)
+        if [ -f "$RUN_DIR/settings_gui.py" ]; then
+            python3 "$RUN_DIR/settings_gui.py" &
+        else
+            python3 "$RUN_DIR/change_photo_dialog.py" &
+        fi
+        ;;
+    logs)
+        journalctl --user -u tokyonight-hud.service -f
+        ;;
+    help|--help|-h)
+        cat <<EOF
+Tokyonight Desktop HUD CLI
+
+Usage: tokyonight-hud [command]
+
+Commands:
+  start       Start the background HUD daemon
+  stop        Stop the background HUD daemon
+  restart     Restart the HUD daemon
+  status      Show current service status and resource usage
+  reload      Force an immediate wallpaper and overlay re-render
+  settings    Open full Settings & Customization Control Center
+  photo       Open Photo Management dialog
+  quote       Open Add Quote dialog
+  goal        Open Edit Daily Sprint Goal dialog
+  clean       Run safe system cache & junk cleaner
+  logs        Stream live service logs
+  help        Show this help message
+
+For more information, visit: https://github.com/hugengseto/tokyonight-hud
+EOF
+        ;;
+    *)
+        echo "Unknown command: $COMMAND"
+        echo "Run 'tokyonight-hud help' for available commands."
+        exit 1
+        ;;
+esac

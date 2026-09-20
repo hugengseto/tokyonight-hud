@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Tokyonight HUD Settings
+Comment=Configure Tokyo Night Desktop HUD, photos, quotes, and goals
+Exec=tokyonight-hud settings
+Icon=tokyonight-hud
+Terminal=false
+Type=Application
+Categories=Utility;Settings;DesktopSettings;
+Keywords=tokyonight;hud;wallpaper;widgets;monitor;system;
+StartupNotify=true
