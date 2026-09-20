@@ -18,14 +18,15 @@
 
 ---
 
-## 🖥️ Desktop Compatibility & Requirements
+## 🖥️ Desktop Compatibility & Architecture
 
-| Desktop Environment / Compositor | Support Status | Notes |
+| Desktop Environment / Compositor | Support Status | Architecture & Notes |
 | :--- | :---: | :--- |
-| **GNOME (X11 & Wayland)** | ✅ **Fully Supported** | Tested on Fedora, Ubuntu, Debian GNOME 40+. Works out of the box. |
-| **X11 Desktops (XFCE, Cinnamon, MATE)** | ✅ **Supported** | Stable desktop layer integration on standard X11 sessions. |
+| **GNOME on Wayland** (Fedora, Ubuntu, Debian) | ✅ **Fully Supported** | Tested on Fedora Workstation default. Uses GNOME `gsettings` for wallpaper rendering and an **Xwayland desktop bridge** (`_NET_WM_WINDOW_TYPE_DESKTOP` + `keep_below`). Best on standard desktops without conflicting desktop-icon extensions. |
+| **GNOME on X11** | ✅ **Fully Supported** | Native X11 EWMH desktop layer with flawless click-through, button focus, and hover states. |
+| **X11 Desktops** (XFCE, Cinnamon, MATE) | ✅ **Supported** | Stable desktop layer integration on standard X11 sessions. |
 | **KDE Plasma** | 🟡 **Partial** | Wallpaper updates use GNOME `gsettings`; X11 session overlay works. |
-| **Tiling Wayland (Hyprland, Sway, River)** | ⏳ **Roadmap** | Tiling WMs require `wlr-layer-shell` for wallpaper & overlays. Xwayland desktop windows may show spinning/busy cursor. Native layer-shell support is planned for next release! |
+| **Tiling Wayland** (Hyprland, Sway, River) | ⏳ **Roadmap** | GNOME's Mutter compositor does not support `wlr-layer-shell`. On wlroots tiling WMs, `wlr-layer-shell` is strictly required for desktop overlays, so Xwayland desktop windows may show an unfocused/busy cursor. Native `gtk-layer-shell` & `swww` support is in active development! |
 
 ---
 
@@ -54,9 +55,10 @@
 - **🧹 Built-in Safe System Junk Cleaner:**
   - Safely clears package caches (`dnf`, `apt`, `pip`), stale thumbnail caches, and vacuumed user journal logs without requiring root privileges.
 
-- **🔋 Ultra-Low Resource Consumption:**
-  - Powered by Python, Cairo vector graphics, and inotify event-driven architecture.
-  - **0% idle CPU usage** and minimal memory footprint.
+- **🔋 Ultra-Low Resource Consumption (Battery Friendly):**
+  - **15-Second Relaxed Interval:** Hardware stats (RAM & SSD) poll on a gentle 15-second tick (`GLib.timeout_add_seconds(15)`), never every second.
+  - **Zero CPU Idle via inotify:** Trash changes, sprint goals, quotes, and photo updates are event-driven via Linux inotify kernels (0% CPU at idle).
+  - **Atomic Compositing:** Zero screen tearing and minimal memory footprint.
 
 ---
 
