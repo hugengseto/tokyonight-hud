@@ -120,6 +120,7 @@ fi
 
 # 4. Systemd User Service Setup
 echo -e "${CYAN}[4/5] Configuring systemd background service...${NC}"
+systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE 2>/dev/null || true
 cp "$SCRIPT_DIR/packaging/tokyonight-hud.service" "$SYSTEMD_USER_DIR/tokyonight-hud.service"
 systemctl --user daemon-reload
 systemctl --user enable tokyonight-hud.service

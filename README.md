@@ -18,6 +18,17 @@
 
 ---
 
+## 🖥️ Desktop Compatibility & Requirements
+
+| Desktop Environment / Compositor | Support Status | Notes |
+| :--- | :---: | :--- |
+| **GNOME (X11 & Wayland)** | ✅ **Fully Supported** | Tested on Fedora, Ubuntu, Debian GNOME 40+. Works out of the box. |
+| **X11 Desktops (XFCE, Cinnamon, MATE)** | ✅ **Supported** | Stable desktop layer integration on standard X11 sessions. |
+| **KDE Plasma** | 🟡 **Partial** | Wallpaper updates use GNOME `gsettings`; X11 session overlay works. |
+| **Tiling Wayland (Hyprland, Sway, River)** | ⏳ **Roadmap** | Tiling WMs require `wlr-layer-shell` for wallpaper & overlays. Xwayland desktop windows may show spinning/busy cursor. Native layer-shell support is planned for next release! |
+
+---
+
 ## ✨ Features
 
 - **⚡ Real-Time Hardware & System Overview:**
