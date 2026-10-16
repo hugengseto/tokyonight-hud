@@ -25,7 +25,7 @@
 | **GNOME on Wayland** (Fedora, Ubuntu, Debian) | ✅ **Fully Supported** | Tested on Fedora Workstation default. Uses GNOME `gsettings` for wallpaper rendering and an **Xwayland desktop bridge** (`_NET_WM_WINDOW_TYPE_DESKTOP` + `keep_below`). Best on standard desktops without conflicting desktop-icon extensions. |
 | **GNOME on X11** | ✅ **Fully Supported** | Native X11 EWMH desktop layer with flawless click-through, button focus, and hover states. |
 | **X11 Desktops** (XFCE, Cinnamon, MATE) | ✅ **Supported** | Stable desktop layer integration on standard X11 sessions. |
-| **KDE Plasma** | 🟡 **Partial** | Wallpaper updates use GNOME `gsettings`; X11 session overlay works. |
+| **KDE Plasma 5 & 6** (Wayland & X11) | ✅ **Fully Supported** | Native `plasma-apply-wallpaperimage` & DBus scripting for dynamic wallpaper updates, combined with KWin Xwayland desktop layer for precision click-through overlay. |
 | **Tiling Wayland** (Hyprland, Sway, River) | ⏳ **Roadmap** | GNOME's Mutter compositor does not support `wlr-layer-shell`. On wlroots tiling WMs, `wlr-layer-shell` is strictly required for desktop overlays, so Xwayland desktop windows may show an unfocused/busy cursor. Native `gtk-layer-shell` & `swww` support is in active development! |
 
 ---
@@ -77,7 +77,7 @@ cd tokyonight-hud
 The installer automatically:
 1. Detects your distribution (`dnf`, `apt`, `pacman`, or `zypper`) and installs required packages (`python3-gobject`, `python3-cairo`, `python3-pillow`, `trash-cli`).
 2. Copies executable binaries, assets, and desktop application shortcuts.
-3. Automatically uses your current desktop wallpaper as the background canvas.
+3. Automatically detects your Desktop Environment (GNOME, KDE Plasma, etc.) and uses your current desktop wallpaper as the background canvas.
 4. Registers and starts the user background daemon via `systemd`.
 
 ---

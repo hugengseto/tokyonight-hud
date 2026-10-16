@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-import math
 import os
+# Force X11 backend for desktop overlay positioning and click-through compatibility
+if 'GDK_BACKEND' not in os.environ:
+    os.environ['GDK_BACKEND'] = 'x11'
+
+import math
 import sys
 import shutil
 import time
@@ -81,13 +85,30 @@ def get_base_wallpaper_path():
     if os.path.exists(ORIGINAL_BG):
         return ORIGINAL_BG
 
-    # Bundled asset wallpaper
-    bundled = os.path.join(APP_DIR, 'assets', 'wallpaper_default.jpg')
-    if os.path.exists(bundled):
-        return bundled
-    bundled_parent = os.path.join(os.path.dirname(APP_DIR), 'assets', 'wallpaper_default.jpg')
-    if os.path.exists(bundled_parent):
-        return bundled_parent
+    # Bundled asset wallpaper in APP_DIR, source dir, or cwd
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    search_dirs = [
+        os.path.join(APP_DIR, 'assets'),
+        os.path.join(os.path.dirname(APP_DIR), 'assets'),
+        os.path.join(script_dir, 'assets'),
+        os.path.join(os.path.dirname(script_dir), 'assets'),
+        os.path.join(os.getcwd(), 'assets'),
+    ]
+    for s_dir in search_dirs:
+        candidate = os.path.join(s_dir, 'wallpaper_default.jpg')
+        if os.path.exists(candidate):
+            return candidate
+
+    # Standard desktop / distro wallpaper paths (Fedora, KDE, GNOME)
+    distro_wallpapers = [
+        '/usr/share/wallpapers/Default/contents/images/3840x2160.jpg',
+        '/usr/share/wallpapers/Default/contents/images/3840x2160.png',
+        '/usr/share/wallpapers/Fedora/contents/images/3840x2160.png',
+        '/usr/share/backgrounds/default.png',
+    ]
+    for dw in distro_wallpapers:
+        if os.path.exists(dw):
+            return dw
 
     if os.path.exists(FALLBACK_BG):
         return FALLBACK_BG
@@ -1156,16 +1177,99 @@ def update_wallpaper(stats, target_path):
     comp = get_compositor()
     comp.composite_and_save(card_file, target_path)
 
+def get_desktop_environment():
+    desktop = (os.environ.get('XDG_CURRENT_DESKTOP') or '').lower()
+    session = (os.environ.get('DESKTOP_SESSION') or '').lower()
+    combined = f"{desktop}:{session}"
+
+    if any(k in combined for k in ['kde', 'plasma']):
+        return 'kde'
+    if any(g in combined for g in ['gnome', 'ubuntu']):
+        return 'gnome'
+    if 'cinnamon' in combined:
+        return 'cinnamon'
+    if 'xfce' in combined:
+        return 'xfce'
+    if 'mate' in combined:
+        return 'mate'
+    return 'generic'
+
+def set_desktop_background(file_path):
+    abs_path = os.path.abspath(file_path)
+    uri = f"file://{abs_path}"
+    de = get_desktop_environment()
+
+    # 1. KDE Plasma Support (Plasma 5 & 6)
+    if de == 'kde' or shutil.which('plasma-apply-wallpaperimage'):
+        if shutil.which('plasma-apply-wallpaperimage'):
+            try:
+                res = subprocess.run(
+                    ['plasma-apply-wallpaperimage', abs_path],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5
+                )
+                if res.returncode == 0:
+                    return
+            except Exception:
+                pass
+
+        # DBus scripting fallback for KDE Plasma
+        qdbus_bin = shutil.which('qdbus-qt6') or shutil.which('qdbus')
+        if qdbus_bin:
+            script = f'''
+            var Desktops = desktops();
+            for (var i = 0; i < Desktops.length; i++) {{
+                var d = Desktops[i];
+                d.wallpaperPlugin = "org.kde.image";
+                d.currentConfigGroup = new Array("Wallpaper", "org.kde.image", "General");
+                d.writeConfig("Image", "{uri}");
+            }}
+            '''
+            try:
+                subprocess.run(
+                    [qdbus_bin, 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', script],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5
+                )
+                return
+            except Exception:
+                pass
+
+    # 2. GNOME / Cinnamon / MATE Support (gsettings)
+    if de in ['gnome', 'cinnamon', 'mate'] or shutil.which('gsettings'):
+        try:
+            os.system(f"gsettings set org.gnome.desktop.background picture-uri '{uri}'")
+            os.system(f"gsettings set org.gnome.desktop.background picture-uri-dark '{uri}'")
+            if de in ['gnome', 'cinnamon']:
+                return
+        except Exception:
+            pass
+
+    # 3. Generic X11 Fallback (feh, nitrogen)
+    if shutil.which('feh'):
+        try:
+            subprocess.run(['feh', '--bg-fill', abs_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+            return
+        except Exception:
+            pass
+    if shutil.which('nitrogen'):
+        try:
+            subprocess.run(['nitrogen', '--set-zoom-fill', abs_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+            return
+        except Exception:
+            pass
+
 def set_gnome_background(file_path):
-    uri = f"file://{os.path.abspath(file_path)}"
-    os.system(f"gsettings set org.gnome.desktop.background picture-uri '{uri}'")
-    os.system(f"gsettings set org.gnome.desktop.background picture-uri-dark '{uri}'")
+    # Backward compatibility alias
+    set_desktop_background(file_path)
 
 def run_once():
     stats = get_system_stats()
     target = TARGET_A
     update_wallpaper(stats, target)
-    set_gnome_background(target)
+    set_desktop_background(target)
     print(f"[{stats['time_str']}] HUD updated successfully! Quote='{stats['quote'][:30]}...'")
 
 class RealtimeHUDDaemon:
@@ -1202,7 +1306,7 @@ class RealtimeHUDDaemon:
                 next_target = TARGET_B if self.active_target == TARGET_A else TARGET_A
                 t0 = time.time()
                 update_wallpaper(stats, next_target)
-                set_gnome_background(next_target)
+                set_desktop_background(next_target)
                 dt = (time.time() - t0) * 1000
                 self.active_target = next_target
                 self.last_signature = sig
@@ -1277,12 +1381,24 @@ class RealtimeHUDDaemon:
                 win = Gtk.Window(type=Gtk.WindowType.TOPLEVEL)
                 win.get_style_context().add_class(f'overlay-win-{i}')
                 win.set_title(f'Tokyonight HUD Overlay Mon{i}')
-                win.set_type_hint(Gdk.WindowTypeHint.DESKTOP)
+                if get_desktop_environment() == 'kde':
+                    win.set_type_hint(Gdk.WindowTypeHint.NORMAL)
+                else:
+                    win.set_type_hint(Gdk.WindowTypeHint.DESKTOP)
                 win.set_skip_taskbar_hint(True)
                 win.set_skip_pager_hint(True)
-                win.set_accept_focus(False)
+                win.set_accept_focus(True)
+                win.set_can_focus(False)
                 win.set_decorated(False)
                 win.set_keep_below(True)
+                win.set_resizable(False)
+
+                hints = Gdk.Geometry()
+                hints.min_width = win_w
+                hints.min_height = win_h
+                hints.max_width = win_w
+                hints.max_height = win_h
+                win.set_geometry_hints(None, hints, Gdk.WindowHints.POS | Gdk.WindowHints.MIN_SIZE | Gdk.WindowHints.MAX_SIZE)
 
                 visual = screen.get_rgba_visual()
                 if visual:
@@ -1328,26 +1444,31 @@ class RealtimeHUDDaemon:
                 btn_trash = Gtk.Button()
                 btn_trash.set_name(f'btn-trash-{i}')
                 btn_trash.set_size_request(t_bw, t_bh)
+                btn_trash.set_can_focus(False)
                 fixed.put(btn_trash, t_bx, t_by)
 
                 btn_clean = Gtk.Button()
                 btn_clean.set_name(f'btn-clean-{i}')
                 btn_clean.set_size_request(c_bw, c_bh)
+                btn_clean.set_can_focus(False)
                 fixed.put(btn_clean, c_bx, c_by)
 
                 btn_goal = Gtk.Button()
                 btn_goal.set_name(f'btn-goal-{i}')
                 btn_goal.set_size_request(g_bw, g_bh)
+                btn_goal.set_can_focus(False)
                 fixed.put(btn_goal, g_bx, g_by)
 
                 btn_quote = Gtk.Button()
                 btn_quote.set_name(f'btn-quote-{i}')
                 btn_quote.set_size_request(q_bw, q_bh)
+                btn_quote.set_can_focus(False)
                 fixed.put(btn_quote, q_bx, q_by)
 
                 btn_photo = Gtk.Button()
                 btn_photo.set_name(f'btn-photo-{i}')
                 btn_photo.set_size_request(p_bw, p_bh)
+                btn_photo.set_can_focus(False)
                 fixed.put(btn_photo, p_bx, p_by)
 
                 # Cursor pointer
@@ -1434,15 +1555,18 @@ class RealtimeHUDDaemon:
                 Gtk.StyleContext.add_provider_for_screen(screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
                 win.show_all()
+                win.move(win_x, win_y)
+                win.set_keep_below(True)
 
-                # Constrain input shape so ONLY buttons catch mouse events
+                # Constrain input shape so ONLY buttons catch mouse events (with 4px margin)
                 gdk_win = win.get_window()
                 if gdk_win:
-                    reg = cairo.Region(cairo.RectangleInt(t_bx, t_by, t_bw, t_bh))
-                    reg.union(cairo.RectangleInt(c_bx, c_by, c_bw, c_bh))
-                    reg.union(cairo.RectangleInt(g_bx, g_by, g_bw, g_bh))
-                    reg.union(cairo.RectangleInt(q_bx, q_by, q_bw, q_bh))
-                    reg.union(cairo.RectangleInt(p_bx, p_by, p_bw, p_bh))
+                    pad = 4
+                    reg = cairo.Region(cairo.RectangleInt(max(0, t_bx - pad), max(0, t_by - pad), t_bw + 2 * pad, t_bh + 2 * pad))
+                    reg.union(cairo.RectangleInt(max(0, c_bx - pad), max(0, c_by - pad), c_bw + 2 * pad, c_bh + 2 * pad))
+                    reg.union(cairo.RectangleInt(max(0, g_bx - pad), max(0, g_by - pad), g_bw + 2 * pad, g_bh + 2 * pad))
+                    reg.union(cairo.RectangleInt(max(0, q_bx - pad), max(0, q_by - pad), q_bw + 2 * pad, q_bh + 2 * pad))
+                    reg.union(cairo.RectangleInt(max(0, p_bx - pad), max(0, p_by - pad), p_bw + 2 * pad, p_bh + 2 * pad))
                     gdk_win.input_shape_combine_region(reg, 0, 0)
 
                 self.overlay_windows.append(win)
@@ -1527,7 +1651,7 @@ if __name__ == '__main__':
             daemon.start()
         elif sys.argv[1] == '--restore':
             if os.path.exists(ORIGINAL_BG):
-                set_gnome_background(ORIGINAL_BG)
+                set_desktop_background(ORIGINAL_BG)
                 print("Restored original wallpaper.")
             else:
                 print("No original wallpaper found.")

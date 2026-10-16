@@ -40,10 +40,14 @@ elif [ -f "$HOME/.config/background.original" ]; then
     ORIGINAL_BG="$HOME/.config/background.original"
 fi
 
-if [ -n "$ORIGINAL_BG" ] && command -v gsettings &>/dev/null; then
+if [ -n "$ORIGINAL_BG" ]; then
     echo "Restoring wallpaper to: $ORIGINAL_BG"
-    gsettings set org.gnome.desktop.background picture-uri "file://$ORIGINAL_BG" || true
-    gsettings set org.gnome.desktop.background picture-uri-dark "file://$ORIGINAL_BG" || true
+    if [ "$XDG_CURRENT_DESKTOP" == "KDE" ] && command -v plasma-apply-wallpaperimage &>/dev/null; then
+        plasma-apply-wallpaperimage "$ORIGINAL_BG" 2>/dev/null || true
+    elif command -v gsettings &>/dev/null; then
+        gsettings set org.gnome.desktop.background picture-uri "file://$ORIGINAL_BG" || true
+        gsettings set org.gnome.desktop.background picture-uri-dark "file://$ORIGINAL_BG" || true
+    fi
 fi
 
 # 3. Remove application binaries, desktop entries & icons

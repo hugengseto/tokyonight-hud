@@ -97,16 +97,21 @@ fi
 
 # Detect & Backup Current Wallpaper if needed
 if [ ! -f "$CONFIG_DIR/wallpaper_base.jpg" ] && [ ! -f "$CONFIG_DIR/wallpaper_base.png" ]; then
-    if command -v gsettings &>/dev/null; then
-        CURRENT_BG=$(gsettings get org.gnome.desktop.background picture-uri | tr -d "'" | sed 's|file://||')
-        if [ -n "$CURRENT_BG" ] && [ -f "$CURRENT_BG" ] && [[ "$CURRENT_BG" != *"tokyonight-hud"* ]]; then
-            echo "Backing up current wallpaper as base: $CURRENT_BG"
-            cp "$CURRENT_BG" "$CONFIG_DIR/wallpaper_base.jpg"
-        elif [ -f "$SCRIPT_DIR/assets/wallpaper_default.jpg" ]; then
-            echo "Setting default Tokyo Night wallpaper base..."
-            cp "$SCRIPT_DIR/assets/wallpaper_default.jpg" "$CONFIG_DIR/wallpaper_base.jpg"
-        fi
+    CURRENT_BG=""
+    # Check GNOME gsettings if not on KDE
+    if [ "$XDG_CURRENT_DESKTOP" != "KDE" ] && command -v gsettings &>/dev/null; then
+        CURRENT_BG=$(gsettings get org.gnome.desktop.background picture-uri 2>/dev/null | tr -d "'" | sed 's|file://||')
+    fi
+    # Check KDE Plasma via appletsrc if not found
+    if [ -z "$CURRENT_BG" ] && [ -f "$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc" ]; then
+        CURRENT_BG=$(grep -E "^Image=" "$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc" 2>/dev/null | head -n 1 | cut -d'=' -f2- | sed 's|file://||')
+    fi
+
+    if [ -n "$CURRENT_BG" ] && [ -f "$CURRENT_BG" ] && [[ "$CURRENT_BG" != *"tokyonight-hud"* ]]; then
+        echo "Backing up current wallpaper as base: $CURRENT_BG"
+        cp "$CURRENT_BG" "$CONFIG_DIR/wallpaper_base.jpg"
     elif [ -f "$SCRIPT_DIR/assets/wallpaper_default.jpg" ]; then
+        echo "Setting default Tokyo Night wallpaper base..."
         cp "$SCRIPT_DIR/assets/wallpaper_default.jpg" "$CONFIG_DIR/wallpaper_base.jpg"
     fi
 fi
@@ -120,7 +125,7 @@ fi
 
 # 4. Systemd User Service Setup
 echo -e "${CYAN}[4/5] Configuring systemd background service...${NC}"
-systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE 2>/dev/null || true
+systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE KDE_FULL_SESSION KDE_SESSION_VERSION GDK_BACKEND 2>/dev/null || true
 cp "$SCRIPT_DIR/packaging/tokyonight-hud.service" "$SYSTEMD_USER_DIR/tokyonight-hud.service"
 systemctl --user daemon-reload
 systemctl --user enable tokyonight-hud.service

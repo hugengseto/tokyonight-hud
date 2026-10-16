@@ -9,7 +9,8 @@ ExecStart=/usr/bin/python3 %h/.local/share/tokyonight-hud/tokyonight_hud.py --da
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
-PassEnvironment=DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+Environment=GDK_BACKEND=x11
+PassEnvironment=DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE KDE_FULL_SESSION KDE_SESSION_VERSION GDK_BACKEND
 
 [Install]
 WantedBy=graphical-session.target
