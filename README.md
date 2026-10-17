@@ -22,11 +22,14 @@
 
 | Desktop Environment / Compositor | Support Status | Architecture & Notes |
 | :--- | :---: | :--- |
-| **GNOME on Wayland** (Fedora, Ubuntu, Debian) | ✅ **Fully Supported** | Tested on Fedora Workstation default. Uses GNOME `gsettings` for wallpaper rendering and an **Xwayland desktop bridge** (`_NET_WM_WINDOW_TYPE_DESKTOP` + `keep_below`). Best on standard desktops without conflicting desktop-icon extensions. |
-| **GNOME on X11** | ✅ **Fully Supported** | Native X11 EWMH desktop layer with flawless click-through, button focus, and hover states. |
+| **GNOME on Wayland & X11** (Fedora, Ubuntu, Debian, Arch) | ✅ **Fully Supported** | Uses GNOME `gsettings` for dynamic wallpaper rendering and desktop overlay bridge. Seamlessly launches **Nautilus** (`trash:///`) for trash inspection. |
+| **KDE Plasma 5 & 6** (Wayland & X11) | ✅ **Fully Supported** | Native `plasma-apply-wallpaperimage` & DBus scripting for wallpaper updating, combined with KWin `BelowLayer` overlay. Automatically integrates with **Dolphin** (`trash:/`). |
 | **X11 Desktops** (XFCE, Cinnamon, MATE) | ✅ **Supported** | Stable desktop layer integration on standard X11 sessions. |
-| **KDE Plasma 5 & 6** (Wayland & X11) | ✅ **Fully Supported** | Native `plasma-apply-wallpaperimage` & DBus scripting for dynamic wallpaper updates, combined with KWin Xwayland desktop layer for precision click-through overlay. |
 | **Tiling Wayland** (Hyprland, Sway, River) | ⏳ **Roadmap** | GNOME's Mutter compositor does not support `wlr-layer-shell`. On wlroots tiling WMs, `wlr-layer-shell` is strictly required for desktop overlays, so Xwayland desktop windows may show an unfocused/busy cursor. Native `gtk-layer-shell` & `swww` support is in active development! |
+
+> [!NOTE]
+> **Universal Desktop Auto-Detection:**
+> Tokyonight HUD automatically detects your active Desktop Environment (`XDG_CURRENT_DESKTOP`) at runtime. It selects the optimal wallpaper engine (`plasma-apply-wallpaperimage` on KDE, `gsettings` on GNOME), positions overlay buttons at the correct window layer, and routes actions to your native desktop applications without requiring manual configuration.
 
 ---
 
@@ -49,7 +52,8 @@
 
 - **🖱️ Precision Interactive Desktop Layer:**
   - Desktop-integrated clickable buttons (*Open Trash*, *Clean Junk*, *Set Goal*, *Add Quote*, *Manage Photos*).
-  - Pixel-perfect hover glow effects and active states.
+  - **Native File Manager Integration:** Opens **Dolphin** on KDE Plasma and **Nautilus** on GNOME.
+  - Pixel-perfect hover glow effects and active states without stealing keyboard focus.
   - **Multi-Monitor Extend Mode Support:** Automatically calculates scaling and coordinate offsets across heterogeneous dual-monitor setups (e.g., 1080p + 768p).
 
 - **🧹 Built-in Safe System Junk Cleaner:**
