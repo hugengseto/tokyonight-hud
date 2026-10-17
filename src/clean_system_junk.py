@@ -66,12 +66,36 @@ def run_cleanup():
     trash_files_dir = os.path.expanduser('~/.local/share/Trash/files')
     if os.path.exists(trash_files_dir):
         trash_size = get_dir_size(trash_files_dir)
-        try:
-            subprocess.run(['gio', 'trash', '--empty'],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
-            bytes_freed += trash_size
-        except Exception:
-            pass
+        cleared = False
+        if shutil.which('trash-empty'):
+            try:
+                res = subprocess.run(['trash-empty'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+                if res.returncode == 0:
+                    cleared = True
+            except Exception:
+                pass
+        if not cleared and shutil.which('gio'):
+            try:
+                res = subprocess.run(['gio', 'trash', '--empty'],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+                if res.returncode == 0:
+                    cleared = True
+            except Exception:
+                pass
+        if not cleared:
+            for t_sub in ['files', 'info']:
+                tp = os.path.expanduser(f'~/.local/share/Trash/{t_sub}')
+                if os.path.exists(tp):
+                    for item in os.listdir(tp):
+                        ip = os.path.join(tp, item)
+                        try:
+                            if os.path.isdir(ip):
+                                shutil.rmtree(ip, ignore_errors=True)
+                            else:
+                                os.remove(ip)
+                        except Exception:
+                            pass
+        bytes_freed += trash_size
 
     # Format freed size
     if bytes_freed >= 1024 * 1024 * 1024:

@@ -1265,6 +1265,37 @@ def set_gnome_background(file_path):
     # Backward compatibility alias
     set_desktop_background(file_path)
 
+def open_trash():
+    de = get_desktop_environment()
+    # 1. KDE Plasma: Dolphin native KIO trash
+    if de == 'kde' and shutil.which('dolphin'):
+        subprocess.Popen(['dolphin', 'trash:/'])
+        return
+    # 2. GNOME: Nautilus native GVFS trash
+    if de == 'gnome' and shutil.which('nautilus'):
+        subprocess.Popen(['nautilus', 'trash:///'])
+        return
+    # 3. Standard xdg-open
+    if shutil.which('xdg-open'):
+        try:
+            res = subprocess.run(['xdg-open', 'trash:/'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode == 0:
+                return
+        except Exception:
+            pass
+    # 4. Fallback to gio open
+    if shutil.which('gio'):
+        try:
+            res = subprocess.run(['gio', 'open', 'trash:///'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode == 0:
+                return
+        except Exception:
+            pass
+    # 5. Direct path fallback
+    trash_files = os.path.expanduser('~/.local/share/Trash/files')
+    if os.path.exists(trash_files):
+        subprocess.Popen(['xdg-open', trash_files])
+
 def run_once():
     stats = get_system_stats()
     target = TARGET_A
@@ -1482,7 +1513,7 @@ class RealtimeHUDDaemon:
                     btn.connect('realize', on_cursor)
                     btn.connect('enter-notify-event', on_cursor)
 
-                btn_trash.connect('clicked', lambda b: subprocess.Popen(['gio', 'open', 'trash:///']))
+                btn_trash.connect('clicked', lambda b: open_trash())
                 btn_clean.connect('clicked', lambda b: subprocess.Popen(['python3', CLEAN_SCRIPT]))
                 btn_goal.connect('clicked', lambda b: subprocess.Popen(['python3', EDIT_GOAL_SCRIPT]))
                 btn_quote.connect('clicked', lambda b: subprocess.Popen(['python3', ADD_QUOTE_SCRIPT]))
