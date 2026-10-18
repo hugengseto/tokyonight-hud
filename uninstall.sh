@@ -62,6 +62,28 @@ if command -v update-desktop-database &>/dev/null; then
     update-desktop-database "$HOME/.local/share/applications" &>/dev/null || true
 fi
 
+# Clean up KDE KWin rules if present
+if [ -f "$HOME/.config/kwinrulesrc" ]; then
+    python3 -c "
+import configparser, os, shutil, subprocess
+rules_path = os.path.expanduser('~/.config/kwinrulesrc')
+cp = configparser.ConfigParser()
+cp.read(rules_path)
+rule_id = 'tokyonight-hud-overlay'
+if cp.has_section(rule_id):
+    cp.remove_section(rule_id)
+    if cp.has_section('General'):
+        existing = [r.strip() for r in cp.get('General', 'rules', fallback='').split(',') if r.strip() and r.strip() != rule_id]
+        cp.set('General', 'rules', ','.join(existing))
+        cp.set('General', 'count', str(len(existing)))
+    with open(rules_path, 'w') as f:
+        cp.write(f)
+    qdbus = shutil.which('qdbus-qt6') or shutil.which('qdbus')
+    if qdbus:
+        subprocess.run([qdbus, 'org.kde.KWin', '/KWin', 'org.kde.KWin.reconfigure'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+" 2>/dev/null || true
+fi
+
 # 4. Optional removal of user configs
 read -p "Do you want to delete your custom photos, quotes, and goals (~/.config/tokyonight-hud)? [y/N]: " REMOVE_CONF
 if [[ "$REMOVE_CONF" =~ ^[Yy]$ ]]; then

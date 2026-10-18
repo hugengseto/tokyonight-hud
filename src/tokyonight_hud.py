@@ -1265,6 +1265,63 @@ def set_gnome_background(file_path):
     # Backward compatibility alias
     set_desktop_background(file_path)
 
+def ensure_kde_kwin_rules():
+    """Ensure KWin window rules prevent overlay from showing in task switcher / overview on KDE Plasma."""
+    if get_desktop_environment() != 'kde':
+        return
+    rules_path = os.path.expanduser('~/.config/kwinrulesrc')
+    try:
+        import configparser
+        cp = configparser.ConfigParser()
+        if os.path.exists(rules_path):
+            cp.read(rules_path)
+        if not cp.has_section('General'):
+            cp.add_section('General')
+        existing = [r.strip() for r in cp.get('General', 'rules', fallback='').split(',') if r.strip()]
+        rule_id = 'tokyonight-hud-overlay'
+        changed = False
+        if rule_id not in existing:
+            existing.append(rule_id)
+            cp.set('General', 'rules', ','.join(existing))
+            cp.set('General', 'count', str(len(existing)))
+            changed = True
+        if not cp.has_section(rule_id):
+            cp.add_section(rule_id)
+            changed = True
+        
+        rule = cp[rule_id]
+        expected = {
+            'Description': 'Tokyonight HUD Desktop Overlay',
+            'wmclass': 'tokyonight_hud.py',
+            'wmclassmatch': '1',
+            'wmclasscomplete': 'false',
+            'skiptaskbar': 'true',
+            'skiptaskbarrule': '3',
+            'skippager': 'true',
+            'skippagerrule': '3',
+            'skipswitcher': 'true',
+            'skipswitcherrule': '3',
+            'below': 'true',
+            'belowrule': '3',
+            'noborder': 'true',
+            'noborderrule': '3',
+        }
+        for k, v in expected.items():
+            if rule.get(k) != v:
+                rule[k] = v
+                changed = True
+        
+        if changed:
+            with open(rules_path, 'w') as f:
+                cp.write(f)
+            qdbus_bin = shutil.which('qdbus-qt6') or shutil.which('qdbus')
+            if qdbus_bin:
+                subprocess.run([qdbus_bin, 'org.kde.KWin', '/KWin', 'org.kde.KWin.reconfigure'],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+    except Exception as e:
+        print(f"Warning: could not configure KWin window rules: {e}", file=sys.stderr)
+
+
 def open_trash():
     de = get_desktop_environment()
     # 1. KDE Plasma: Dolphin native KIO trash
@@ -1373,6 +1430,7 @@ class RealtimeHUDDaemon:
 
     def init_overlay_windows(self):
         self.destroy_overlay_windows()
+        ensure_kde_kwin_rules()
         try:
             display = Gdk.Display.get_default()
             if not display:
@@ -1413,7 +1471,7 @@ class RealtimeHUDDaemon:
                 win.get_style_context().add_class(f'overlay-win-{i}')
                 win.set_title(f'Tokyonight HUD Overlay Mon{i}')
                 if get_desktop_environment() == 'kde':
-                    win.set_type_hint(Gdk.WindowTypeHint.NORMAL)
+                    win.set_type_hint(Gdk.WindowTypeHint.UTILITY)
                 else:
                     win.set_type_hint(Gdk.WindowTypeHint.DESKTOP)
                 win.set_skip_taskbar_hint(True)
@@ -1423,6 +1481,16 @@ class RealtimeHUDDaemon:
                 win.set_decorated(False)
                 win.set_keep_below(True)
                 win.set_resizable(False)
+
+                # Set application icon if available
+                icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets', 'tokyonight-hud.svg')
+                if not os.path.exists(icon_path):
+                    icon_path = os.path.expanduser('~/.local/share/icons/hicolor/scalable/apps/tokyonight-hud.svg')
+                if os.path.exists(icon_path):
+                    try:
+                        win.set_icon_from_file(icon_path)
+                    except Exception:
+                        pass
 
                 hints = Gdk.Geometry()
                 hints.min_width = win_w
